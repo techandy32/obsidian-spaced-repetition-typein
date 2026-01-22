@@ -150,6 +150,8 @@ export class NoteQuestionParser {
             multilineCardSeparator: settings.multilineCardSeparator,
             multilineReversedCardSeparator: settings.multilineReversedCardSeparator,
             multilineCardEndMarker: settings.multilineCardEndMarker,
+            singleLineTypeInCardSeparator: settings.singleLineTypeInCardSeparator,
+            multilineTypeInCardSeparator: settings.multilineTypeInCardSeparator,
             clozePatterns: settings.clozePatterns,
         };
 

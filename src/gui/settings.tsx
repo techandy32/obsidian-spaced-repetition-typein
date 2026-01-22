@@ -463,6 +463,70 @@ export class SRSettingTab extends PluginSettingTab {
                         this.display();
                     });
             });
+
+        new Setting(containerEl)
+            .setName(t("INLINE_TYPEIN_CARDS_SEPARATOR"))
+            .setDesc(t("FIX_SEPARATORS_MANUALLY_WARNING"))
+            .addText((text) =>
+                text
+                    .setValue(this.plugin.data.settings.singleLineTypeInCardSeparator)
+                    .onChange((value) => {
+                        applySettingsUpdate(async () => {
+                            this.plugin.data.settings.singleLineTypeInCardSeparator = value;
+                            await this.plugin.savePluginData();
+                        });
+                    }),
+            )
+            .addExtraButton((button) => {
+                button
+                    .setIcon("reset")
+                    .setTooltip(t("RESET_DEFAULT"))
+                    .onClick(async () => {
+                        this.plugin.data.settings.singleLineTypeInCardSeparator =
+                            DEFAULT_SETTINGS.singleLineTypeInCardSeparator;
+                        await this.plugin.savePluginData();
+
+                        this.display();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setName(t("MULTILINE_TYPEIN_CARDS_SEPARATOR"))
+            .setDesc(t("FIX_SEPARATORS_MANUALLY_WARNING"))
+            .addText((text) =>
+                text
+                    .setValue(this.plugin.data.settings.multilineTypeInCardSeparator)
+                    .onChange((value) => {
+                        applySettingsUpdate(async () => {
+                            this.plugin.data.settings.multilineTypeInCardSeparator = value;
+                            await this.plugin.savePluginData();
+                        });
+                    }),
+            )
+            .addExtraButton((button) => {
+                button
+                    .setIcon("reset")
+                    .setTooltip(t("RESET_DEFAULT"))
+                    .onClick(async () => {
+                        this.plugin.data.settings.multilineTypeInCardSeparator =
+                            DEFAULT_SETTINGS.multilineTypeInCardSeparator;
+                        await this.plugin.savePluginData();
+
+                        this.display();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setName(t("TYPEIN_CASE_SENSITIVE"))
+            .setDesc(t("TYPEIN_CASE_SENSITIVE_DESC"))
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.data.settings.typeInCaseSensitive)
+                    .onChange(async (value) => {
+                        this.plugin.data.settings.typeInCaseSensitive = value;
+                        await this.plugin.savePluginData();
+                    }),
+            );
     }
 
     private async tabNotes(containerEl: HTMLElement): Promise<void> {

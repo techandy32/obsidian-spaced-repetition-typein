@@ -501,6 +501,110 @@ body:not(.native-scrollbars) #sr-modal .modal-close-button {
     user-select: text;
 }
 
+/* MARK: TypeIn Cards */
+
+.sr-typein-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px;
+}
+
+.sr-typein-input {
+    width: 100%;
+    padding: 12px;
+    font-size: var(--font-text-size);
+    font-family: var(--font-monospace);
+    border: 2px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.sr-typein-input:focus {
+    border-color: var(--interactive-accent);
+    outline: none;
+}
+
+.sr-typein-input:disabled {
+    background-color: var(--background-secondary);
+    cursor: not-allowed;
+}
+
+.sr-check-answer-button {
+    align-self: center;
+    min-width: 150px;
+}
+
+.sr-typein-result {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background-color: var(--background-secondary);
+    border-radius: 4px;
+    font-family: var(--font-monospace);
+}
+
+.sr-typein-user-answer,
+.sr-typein-correct-answer {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.sr-typein-label {
+    font-weight: bold;
+    color: var(--text-muted);
+    min-width: 120px;
+}
+
+.sr-typein-answer-text {
+    flex: 1;
+    word-break: break-word;
+}
+
+.sr-typein-empty {
+    color: var(--text-faint);
+    font-style: italic;
+}
+
+/* Diff highlighting */
+.sr-typein-correct {
+    color: #4caf50;
+}
+
+.sr-typein-incorrect {
+    color: #ff5252;
+    text-decoration: line-through;
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
+.sr-typein-missing {
+    color: #ff9800;
+    background-color: rgba(255, 152, 0, 0.1);
+}
+
+/* Result indicator */
+.sr-typein-indicator {
+    text-align: center;
+    font-weight: bold;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+.sr-typein-indicator-correct {
+    color: #4caf50;
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.sr-typein-indicator-incorrect {
+    color: #ff5252;
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
 /* MARK: EditModal */
 
 .sr-edit-modal {

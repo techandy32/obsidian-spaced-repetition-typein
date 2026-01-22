@@ -16,6 +16,7 @@ import type SRPlugin from "src/main";
 import { Note } from "src/note";
 import { CardType, Question } from "src/question";
 import { SRSettings } from "src/settings";
+import { computeDiff, isAnswerCorrect, renderDiffHtml } from "src/utils/diff";
 import { RenderMarkdownWrapper } from "src/utils/renderers";
 
 export class CardUI {
@@ -69,6 +70,13 @@ export class CardUI {
     public easyButton: HTMLButtonElement;
     public answerButton: HTMLButtonElement;
     public lastPressed: number;
+
+    // Type-in card elements
+    public typeInContainer: HTMLDivElement;
+    public typeInInput: HTMLInputElement;
+    public checkAnswerButton: HTMLButtonElement;
+    public typeInResult: HTMLDivElement;
+    private userTypedAnswer: string = "";
 
     private chosenDeck: Deck | null;
     private totalCardsInSession: number = 0;
@@ -127,10 +135,43 @@ export class CardUI {
         this.content = this.view.createDiv();
         this.content.addClass("sr-content");
 
+        this._createTypeInSection();
+
         this.response = this.view.createDiv();
         this.response.addClass("sr-response");
 
         this._createResponseButtons();
+    }
+
+    /**
+     * Creates the type-in input section for TypeIn cards
+     */
+    private _createTypeInSection() {
+        this.typeInContainer = this.view.createDiv();
+        this.typeInContainer.addClasses(["sr-typein-container", "sr-is-hidden"]);
+
+        // Create the input field
+        this.typeInInput = this.typeInContainer.createEl("input", {
+            type: "text",
+            placeholder: t("TYPE_YOUR_ANSWER"),
+        });
+        this.typeInInput.addClass("sr-typein-input");
+
+        // Create the check answer button
+        this.checkAnswerButton = this.typeInContainer.createEl("button");
+        this.checkAnswerButton.addClasses([
+            "sr-response-button",
+            "sr-check-answer-button",
+            "sr-bg-blue",
+        ]);
+        this.checkAnswerButton.setText(t("CHECK_ANSWER"));
+        this.checkAnswerButton.addEventListener("click", () => {
+            this._checkTypeInAnswer();
+        });
+
+        // Create the result display area
+        this.typeInResult = this.typeInContainer.createDiv();
+        this.typeInResult.addClasses(["sr-typein-result", "sr-is-hidden"]);
     }
 
     /**
@@ -229,6 +270,11 @@ export class CardUI {
 
     private get _currentNote(): Note {
         return this.reviewSequencer.currentNote;
+    }
+
+    private get _isTypeInCard(): boolean {
+        const cardType = this._currentQuestion?.questionType;
+        return cardType === CardType.SingleLineTypeIn || cardType === CardType.MultiLineTypeIn;
     }
 
     private async _processReview(response: ReviewResponse): Promise<void> {
@@ -478,10 +524,26 @@ export class CardUI {
 
     private _resetResponseButtons() {
         // Sets all buttons in to their default state
-        this.answerButton.removeClass("sr-is-hidden");
         this.hardButton.addClass("sr-is-hidden");
         this.goodButton.addClass("sr-is-hidden");
         this.easyButton.addClass("sr-is-hidden");
+
+        // Handle TypeIn cards differently
+        if (this._isTypeInCard) {
+            this.answerButton.addClass("sr-is-hidden");
+            this.typeInContainer.removeClass("sr-is-hidden");
+            this.typeInInput.value = "";
+            this.typeInInput.disabled = false;
+            this.userTypedAnswer = "";
+            this.checkAnswerButton.removeClass("sr-is-hidden");
+            this.typeInResult.addClass("sr-is-hidden");
+            this.typeInResult.empty();
+            // Focus the input field after a short delay to ensure it's visible
+            setTimeout(() => this.typeInInput.focus(), 50);
+        } else {
+            this.answerButton.removeClass("sr-is-hidden");
+            this.typeInContainer.addClass("sr-is-hidden");
+        }
     }
 
     private _createShowAnswerButton() {
@@ -557,6 +619,104 @@ export class CardUI {
         }
     }
 
+    /**
+     * Checks the user's typed answer against the correct answer and shows the diff
+     */
+    private _checkTypeInAnswer(): void {
+        const timeNow = now();
+        if (
+            this.lastPressed &&
+            timeNow - this.lastPressed < this.plugin.data.settings.reviewButtonDelay
+        ) {
+            return;
+        }
+        this.lastPressed = timeNow;
+
+        // Get the user's answer and the correct answer
+        this.userTypedAnswer = this.typeInInput.value;
+        const correctAnswer = this._currentCard.back.trim();
+        const caseSensitive = this.settings.typeInCaseSensitive;
+
+        // Compute the diff
+        const diff = computeDiff(this.userTypedAnswer, correctAnswer, caseSensitive);
+        const isCorrect = isAnswerCorrect(this.userTypedAnswer, correctAnswer, caseSensitive);
+
+        // Display the result
+        this.typeInResult.empty();
+        this.typeInResult.removeClass("sr-is-hidden");
+
+        // Show user's answer with diff highlighting
+        const userAnswerDiv = this.typeInResult.createDiv();
+        userAnswerDiv.addClass("sr-typein-user-answer");
+        const userLabel = userAnswerDiv.createSpan();
+        userLabel.addClass("sr-typein-label");
+        userLabel.setText(t("YOUR_ANSWER") + ": ");
+        const userAnswerSpan = userAnswerDiv.createSpan();
+        userAnswerSpan.addClass("sr-typein-answer-text");
+        if (this.userTypedAnswer.length === 0) {
+            userAnswerSpan.setText("(" + t("NO_INPUT") + ")");
+            userAnswerSpan.addClass("sr-typein-empty");
+        } else {
+            userAnswerSpan.innerHTML = renderDiffHtml(diff);
+        }
+
+        // Show correct answer
+        const correctAnswerDiv = this.typeInResult.createDiv();
+        correctAnswerDiv.addClass("sr-typein-correct-answer");
+        const correctLabel = correctAnswerDiv.createSpan();
+        correctLabel.addClass("sr-typein-label");
+        correctLabel.setText(t("CORRECT_ANSWER") + ": ");
+        const correctAnswerSpan = correctAnswerDiv.createSpan();
+        correctAnswerSpan.addClass("sr-typein-answer-text");
+        correctAnswerSpan.setText(correctAnswer);
+
+        // Show result indicator
+        const resultIndicator = this.typeInResult.createDiv();
+        resultIndicator.addClass("sr-typein-indicator");
+        if (isCorrect) {
+            resultIndicator.addClass("sr-typein-indicator-correct");
+            resultIndicator.setText("✓ " + t("CORRECT"));
+        } else {
+            resultIndicator.addClass("sr-typein-indicator-incorrect");
+            resultIndicator.setText("✗ " + t("INCORRECT"));
+        }
+
+        // Disable input and hide check button
+        this.typeInInput.disabled = true;
+        this.checkAnswerButton.addClass("sr-is-hidden");
+
+        // Switch to Back mode and show rating buttons
+        this.mode = FlashcardMode.Back;
+        this.resetButton.disabled = false;
+
+        // Show response buttons
+        this.hardButton.removeClass("sr-is-hidden");
+        this.easyButton.removeClass("sr-is-hidden");
+
+        if (this.reviewMode === FlashcardReviewMode.Cram) {
+            this.response.addClass("is-cram");
+            this.hardButton.setText(`${this.settings.flashcardHardText}`);
+            this.easyButton.setText(`${this.settings.flashcardEasyText}`);
+        } else {
+            this.goodButton.removeClass("sr-is-hidden");
+            this._setupEaseButton(
+                this.hardButton,
+                this.settings.flashcardHardText,
+                ReviewResponse.Hard,
+            );
+            this._setupEaseButton(
+                this.goodButton,
+                this.settings.flashcardGoodText,
+                ReviewResponse.Good,
+            );
+            this._setupEaseButton(
+                this.easyButton,
+                this.settings.flashcardEasyText,
+                ReviewResponse.Easy,
+            );
+        }
+    }
+
     private _showAnswer(): void {
         const timeNow = now();
         if (
@@ -629,6 +789,9 @@ export class CardUI {
             return;
         }
 
+        // Allow typing in the TypeIn input field
+        const isTypingInInput = document.activeElement === this.typeInInput;
+
         const consumeKeyEvent = () => {
             e.preventDefault();
             e.stopPropagation();
@@ -636,13 +799,23 @@ export class CardUI {
 
         switch (e.code) {
             case "KeyS":
-                this._skipCurrentCard();
-                consumeKeyEvent();
+                // Don't skip if typing in input
+                if (!isTypingInInput) {
+                    this._skipCurrentCard();
+                    consumeKeyEvent();
+                }
                 break;
             case "Space":
+                if (isTypingInInput) {
+                    // Allow space in input
+                    break;
+                }
                 if (this.mode === FlashcardMode.Front) {
-                    this._showAnswer();
-                    consumeKeyEvent();
+                    // For TypeIn cards, don't show answer on space - user should use check button
+                    if (!this._isTypeInCard) {
+                        this._showAnswer();
+                        consumeKeyEvent();
+                    }
                 } else if (this.mode === FlashcardMode.Back) {
                     this._processReview(ReviewResponse.Good);
                     consumeKeyEvent();
@@ -653,8 +826,11 @@ export class CardUI {
                 if (this.mode !== FlashcardMode.Front) {
                     break;
                 }
-                this._showAnswer();
-                consumeKeyEvent();
+                // For TypeIn cards, don't show answer on enter - user should use check button
+                if (!this._isTypeInCard) {
+                    this._showAnswer();
+                    consumeKeyEvent();
+                }
                 break;
             case "Numpad1":
             case "Digit1":

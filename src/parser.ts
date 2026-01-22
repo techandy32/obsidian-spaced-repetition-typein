@@ -10,6 +10,8 @@ export interface ParserOptions {
     multilineCardSeparator: string;
     multilineReversedCardSeparator: string;
     multilineCardEndMarker: string;
+    singleLineTypeInCardSeparator: string;
+    multilineTypeInCardSeparator: string;
     clozePatterns: string[];
 }
 
@@ -88,6 +90,7 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
     const inlineSeparators = [
         { separator: options.singleLineCardSeparator, type: CardType.SingleLineBasic },
         { separator: options.singleLineReversedCardSeparator, type: CardType.SingleLineReversed },
+        { separator: options.singleLineTypeInCardSeparator, type: CardType.SingleLineTypeIn },
     ];
     inlineSeparators.sort((a, b) => b.separator.length - a.separator.length);
 
@@ -151,7 +154,11 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
             }
         }
 
-        if (cardType == CardType.SingleLineBasic || cardType == CardType.SingleLineReversed) {
+        if (
+            cardType == CardType.SingleLineBasic ||
+            cardType == CardType.SingleLineReversed ||
+            cardType == CardType.SingleLineTypeIn
+        ) {
             cardText = currentLine;
             firstLineNo = i;
 
@@ -177,6 +184,12 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
             if (cardText.length > 1) {
                 // Pick up multiline basic cards
                 cardType = CardType.MultiLineReversed;
+            }
+        } else if (currentTrimmed === options.multilineTypeInCardSeparator) {
+            // Ignore card if the front of the card is empty
+            if (cardText.length > 1) {
+                // Pick up multiline type-in cards
+                cardType = CardType.MultiLineTypeIn;
             }
         } else if (currentLine.startsWith("```") || currentLine.startsWith("~~~")) {
             // Pick up codeblocks

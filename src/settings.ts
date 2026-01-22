@@ -22,6 +22,9 @@ export interface SRSettings {
     multilineCardSeparator: string;
     multilineReversedCardSeparator: string;
     multilineCardEndMarker: string;
+    singleLineTypeInCardSeparator: string;
+    multilineTypeInCardSeparator: string;
+    typeInCaseSensitive: boolean;
     editLaterTag: string;
 
     // notes
@@ -82,6 +85,9 @@ export const DEFAULT_SETTINGS: SRSettings = {
     multilineCardSeparator: "?",
     multilineReversedCardSeparator: "??",
     multilineCardEndMarker: "",
+    singleLineTypeInCardSeparator: "::?",
+    multilineTypeInCardSeparator: "??:",
+    typeInCaseSensitive: false,
     editLaterTag: "#edit-later",
 
     // notes

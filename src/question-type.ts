@@ -110,6 +110,34 @@ class QuestionTypeCloze implements IQuestionTypeHandler {
     }
 }
 
+class QuestionTypeSingleLineTypeIn implements IQuestionTypeHandler {
+    expand(questionText: string, settings: SRSettings): CardFrontBack[] {
+        const idx: number = questionText.indexOf(settings.singleLineTypeInCardSeparator);
+        const item: CardFrontBack = new CardFrontBack(
+            questionText.substring(0, idx),
+            questionText.substring(idx + settings.singleLineTypeInCardSeparator.length),
+        );
+        const result: CardFrontBack[] = [item];
+        return result;
+    }
+}
+
+class QuestionTypeMultiLineTypeIn implements IQuestionTypeHandler {
+    expand(questionText: string, settings: SRSettings): CardFrontBack[] {
+        // We don't need to worry about "\r\n", as multi line questions processed by parse() concatenates lines explicitly with "\n"
+        const questionLines = questionText.split("\n");
+        const lineIdx = findLineIndexOfSearchStringIgnoringWs(
+            questionLines,
+            settings.multilineTypeInCardSeparator,
+        );
+        const side1: string = questionLines.slice(0, lineIdx).join("\n");
+        const side2: string = questionLines.slice(lineIdx + 1).join("\n");
+
+        const result: CardFrontBack[] = [new CardFrontBack(side1, side2)];
+        return result;
+    }
+}
+
 export class QuestionTypeClozeFormatter implements IClozeFormatter {
     asking(answer?: string, hint?: string): string {
         return `<span style='color:#2196f3'>${!hint ? "[...]" : `[${hint}]`}</span>`;
@@ -142,6 +170,12 @@ export class QuestionTypeFactory {
                 break;
             case CardType.Cloze:
                 handler = new QuestionTypeCloze();
+                break;
+            case CardType.SingleLineTypeIn:
+                handler = new QuestionTypeSingleLineTypeIn();
+                break;
+            case CardType.MultiLineTypeIn:
+                handler = new QuestionTypeMultiLineTypeIn();
                 break;
         }
         return handler;
